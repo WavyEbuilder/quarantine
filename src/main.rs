@@ -45,14 +45,14 @@ fn main() -> ExitCode {
     };
 
     {
-        let app_dir = PathBuf::from(xdg_runtime_dir).join("quarantine");
+        let runtime_dir = PathBuf::from(xdg_runtime_dir).join("quarantine");
 
-        if let Err(e) = fs::create_dir_all(&app_dir) {
+        if let Err(e) = fs::create_dir_all(&runtime_dir) {
             eprintln!("Error: Could not create runtime directory: {}", e);
             return ExitCode::FAILURE;
         }
 
-        let metadata = match fs::metadata(&app_dir) {
+        let metadata = match fs::metadata(&runtime_dir) {
             Ok(meta) => meta,
             Err(e) => {
                 eprintln!("Error: Could not fetch runtime directory metadata: {}", e);
@@ -63,7 +63,7 @@ fn main() -> ExitCode {
         let mut perms = metadata.permissions();
         perms.set_mode(0o700);
 
-        if let Err(e) = fs::set_permissions(&app_dir, perms) {
+        if let Err(e) = fs::set_permissions(&runtime_dir, perms) {
             eprintln!("Error: Could not set runtime directory permissions: {}", e);
             return ExitCode::FAILURE;
         }
