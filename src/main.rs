@@ -19,6 +19,9 @@
 use std::{
     process::ExitCode,
     env,
+    fs,
+    path::PathBuf,
+    os::unix::fs::PermissionsExt,
 };
 use crate::load::load_profile;
 
@@ -31,6 +34,39 @@ fn main() -> ExitCode {
     if args.len() != 2 {
         eprintln!("Usage: {} <profile_name>", args[0]);
         return ExitCode::FAILURE;
+    }
+
+    let xdg_runtime_dir = match env::var("XDG_RUNTIME_DIR") {
+        Ok(dir) => dir,
+        Err(_) => {
+            eprintln!("Error: XDG_RUNTIME_DIR is not set");
+            return ExitCode::FAILURE;
+        }
+    };
+
+    {
+        let app_dir = PathBuf::from(xdg_runtime_dir).join("quarantine");
+
+        if let Err(e) = fs::create_dir_all(&app_dir) {
+            eprintln!("Error: Could not create runtime directory: {}", e);
+            return ExitCode::FAILURE;
+        }
+
+        let metadata = match fs::metadata(&app_dir) {
+            Ok(meta) => meta,
+            Err(e) => {
+                eprintln!("Error: Could not fetch runtime directory metadata: {}", e);
+                return ExitCode::FAILURE;
+            }
+        };
+
+        let mut perms = metadata.permissions();
+        perms.set_mode(0o700);
+
+        if let Err(e) = fs::set_permissions(&app_dir, perms) {
+            eprintln!("Error: Could not set runtime directory permissions: {}", e);
+            return ExitCode::FAILURE;
+        }
     }
 
     let profile_name = &args[1];
